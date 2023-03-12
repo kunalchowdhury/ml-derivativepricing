@@ -14,7 +14,7 @@ print('Loading function')
 
 def lambda_handler(event, context):
     try:
-        s3 = boto3.client('s3',aws_access_key_id='AKIAYEYVUNNZBZM5AP7P',aws_secret_access_key='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',region_name='us-east-1') #1
+        s3 = boto3.client('s3',aws_access_key_id='' ,aws_secret_access_key='',region_name='us-east-1') #1
         obj = s3.get_object(Bucket='marketsworkshop', Key='basket_with_five.csv') #2
         data = obj['Body'].read().decode('utf-8-sig').splitlines() #3
         records = csv.DictReader(data) #4
