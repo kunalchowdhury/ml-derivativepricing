@@ -10,7 +10,6 @@ import pandas as pd
 from scipy.stats import norm
 from scipy.stats import beta
 
-
 def generate_forward_stock_prices(mu, std, size):
     return mu * np.random.lognormal(0, 1, size)
 
@@ -108,7 +107,7 @@ df = pd.DataFrame(ar, columns = ['forward_price_1',
                                  'maturity_in_months', 
                                  'price'])
 #print(df)
-df.to_csv('historical_test_data.csv',header=False, index=False);
+df.to_csv('historical_test_data_with_header.csv',header=True, index=False);
 print('Data generation complete !')
 
     

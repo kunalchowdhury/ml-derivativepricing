@@ -29,7 +29,7 @@ class SimpleBasket:
     expiries = [3, 6, 9, 12]
     exec_types = ['American', 'European']
     option_types = ['Call', 'Put']
-    payoff_at_expiries = [True, False]
+    payoff_at_expiries = [False]
     corr_mat = []
     strike = 0
     
@@ -99,7 +99,10 @@ class SimpleBasket:
             numSteps = 500000
             stepsPerYear = 1
             seed = 43
-            engine = ql.MCEuropeanBasketEngine(multiProcess, rng, timeStepsPerYear=stepsPerYear, requiredSamples=numSteps, seed=seed)
+            if self.execution_style == 'American':
+                engine = ql.MCAmericanBasketEngine(multiProcess, rng, timeStepsPerYear=stepsPerYear, requiredSamples=numSteps, seed=seed)
+            else:
+                engine = ql.MCEuropeanBasketEngine(multiProcess, rng, timeStepsPerYear=stepsPerYear, requiredSamples=numSteps, seed=seed)
             
             today = ql.Date().todaysDate()
             exp_date = today + ql.Period(expiration, ql.Months)
@@ -122,10 +125,11 @@ class SimpleBasket:
             return basketOptionAverage.NPV();
         except Exception as e:
             print(e)
-            print(self.corr_mat)
-            print(processes)
-            print(underlying_vols)
-            print(underlying_spots)
+            print(self.instrument_id + " , "+self.option_type)
+            #print(self.corr_mat)
+            #print(processes)
+            #print(underlying_vols)
+            #print(underlying_spots)
             raise e
 
 
