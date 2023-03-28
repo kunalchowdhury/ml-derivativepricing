@@ -63,7 +63,10 @@ def ping():
     status = 200 if health else 404
     return flask.Response(response="\n", status=status, mimetype="application/json")
 
-
+def download_files():
+    s3 = boto3.client('s3',aws_access_key_id='AKIAYEYVUNNZCNEXLGU5'  ,aws_secret_access_key='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',region_name='us-east-1')
+    s3.download_file('marketsworkshop', 'mldata/model.h5', 'model.h5')
+    s3.download_file('marketsworkshop', 'mldata/model.h5', 'model.json')
 @app.route("/evaluate", methods=["POST"])
 def evaluate():
     """Do an inference on a single batch of data. In this sample server, we take data as CSV, convert
@@ -99,6 +102,7 @@ def evaluate():
             except Exception as e:
                   print(e)  
         valuation_results['from_keras'] = {}
+        download_files()
         json_file = open('model.json', 'r')
         loaded_model_json = json_file.read()
         json_file.close()

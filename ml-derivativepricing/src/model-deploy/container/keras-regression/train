@@ -87,7 +87,7 @@ def generate_network_NN():
 
 
 
-EPOCHS = 800
+EPOCHS = 1000
 BS = 100
 INIT_LR = 1e-4
 model = generate_network_NN()
@@ -145,10 +145,15 @@ def train():
 	# serialize weights to HDF5
         model.save_weights("model.h5")
         print("Saved model to disk")
+        
+        s3.upload_file('model.json', 'marketsworkshop', 'mldata/model.json')
+        s3.upload_file('model.h5', 'marketsworkshop', 'mldata/model.h5')
+        
         #model.save(model_path + '/trained_model.h5')
         # save the model
         #with open(os.path.join(model_path, 'decision-tree-model.pkl'), 'wb') as out:
         #    pickle.dump(clf, out)
+        
         print('Training complete.')
     except Exception as e:
         # Write out an error file. This will be returned as the failureReason in the
