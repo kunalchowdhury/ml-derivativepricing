@@ -1,0 +1,173 @@
+#!/usr/bin/env python
+
+# A sample training component that trains a simple scikit-learn decision tree model.
+# This implementation works in File mode and makes no assumptions about the input file names.
+# Input is specified as CSV with a data point in each row and the labels in the first column.
+
+from __future__ import print_function
+
+import json
+import os
+import pickle
+import sys
+import traceback
+import tensorflow as tf
+import numpy as np
+import time
+import sys
+import pandas as pd
+from numpy import loadtxt
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+from sklearn.model_selection import train_test_split
+from tensorflow.keras.layers import Flatten
+from tensorflow.keras import regularizers
+from tensorflow.keras.layers import LeakyReLU
+from tensorflow.keras.layers import BatchNormalization
+from tensorflow.keras.layers import Activation
+from tensorflow.keras.layers import Flatten
+from tensorflow.keras.layers import Dropout
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.losses import mean_squared_error
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
+from sklearn.preprocessing import MinMaxScaler
+import boto3, re, sys, math, json, os, urllib.request
+import csv
+import io
+
+import pandas as pd
+
+# These are the paths to where SageMaker mounts interesting things in your container.
+
+prefix = '/tmp/'
+input_path = prefix + 'input/data'
+output_path = os.path.join(prefix, 'output')
+model_path = os.path.join(prefix, 'model')
+
+#try:
+#   os.makedirs(input_path, 0o666)
+#   os.makedirs(output_path, 0o666)
+#   os.makedirs(model_path, 0o666)
+#except OSError as e:
+#    print("Error: %s - %s." % (e.filename, e.strerror))
+
+#param_path = os.path.join(prefix, 'input/config/hyperparameters.json')
+
+# This algorithm has a single channel of input data called 'training'. Since we run in
+# File mode, the input files are copied to the directory specified here.
+channel_name='training'
+training_path = os.path.join(input_path, channel_name)
+
+def generate_network_NN():
+    model = Sequential()  
+    model.add(tf.keras.Input(shape=(28, )))
+    model.add(Dense(1024, activation='relu'))
+    model.add(Dense(512, activation='relu'))
+    #model.add(LeakyReLU(alpha=0.001))
+    #model.add(BatchNormalization())
+    #model.add(Dropout(0.5)) 
+    model.add(Dense(256, activation='relu'))
+    #model.add(LeakyReLU(alpha=0.001))
+    #model.add(BatchNormalization())
+    #model.add(Dropout(0.5))
+    #model.add(Dense(256, activation='relu'))
+    #model.add(LeakyReLU(alpha=0.001))
+    #model.add(BatchNormalization())
+    #model.add(Dropout(0.5))
+    model.add(Dense(128, activation='relu'))
+    #model.add(BatchNormalization())
+    model.add(Dense(64, activation='relu'))
+    model.add(Dense(32, activation='relu'))
+    model.add(Dense(16, activation='relu'))
+    #model.add(BatchNormalization())
+    model.add(Dense(8, activation='relu'))
+    model.add(Dense(4, activation='relu'))
+    model.add(tf.keras.layers.Dense(1, activation='linear'))
+    return model
+
+
+
+EPOCHS = 1000
+BS = 100
+INIT_LR = 1e-4
+model = generate_network_NN()
+opt = tf.keras.optimizers.Adam(learning_rate=0.0001)
+
+model.compile(optimizer='sgd',loss='cosine_similarity')
+
+def step(X, y):
+    with tf.GradientTape() as tape:
+        pred = model(X)
+        loss = mean_squared_error(np.reshape(y, (100, 1)), pred)
+    grads = tape.gradient(loss, model.trainable_variables)
+    opt.apply_gradients(zip(grads, model.trainable_variables))
+
+
+# The function to execute the training.
+def train():
+    print('Starting the training.')
+    try:
+        s3 = boto3.client('s3',aws_access_key_id='AKIAYEYVUNNZCNEXLGU5'  ,aws_secret_access_key='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',region_name='us-east-1') #1
+        obj = s3.get_object(Bucket='marketsworkshop', Key='mldata/historical_test_data.csv') #2
+        df = pd.read_csv(io.BytesIO(obj['Body'].read()))
+        
+        dataset = df.values
+        # split into input (X) and output (y) variables
+        X = dataset[:,0:28]
+        y = dataset[:,28]
+
+        #scaler = MinMaxScaler()
+        #X_scaled = scaler.fit_transform(X)
+        print('SUCCESS')
+        
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.35, random_state=1)
+
+        numUpdates = int(X_train.shape[0] / BS)
+        for epoch in range(0, EPOCHS):
+            print("[INFO] starting epoch {}/{}...".format(epoch + 1, EPOCHS), end="")
+            sys.stdout.flush()
+            epochStart = time.time()
+            for i in range(0, numUpdates):
+            	start = i * BS
+            	end = start + BS
+            	step(X_train[start:end], y_train[start:end])
+            	epochEnd = time.time()
+            	elapsed = (epochEnd - epochStart) / 60.0
+            print("took {:.4} minutes".format(elapsed))
+
+        v = model.evaluate(X_test, y_test)
+        print (v)
+
+        # serialize model to JSON
+        model_json = model.to_json()
+        with open("model.json", "w") as json_file:
+           json_file.write(model_json)
+	# serialize weights to HDF5
+        model.save_weights("model.h5")
+        print("Saved model to disk")
+        
+        s3.upload_file('model.json', 'marketsworkshop', 'mldata/model.json')
+        s3.upload_file('model.h5', 'marketsworkshop', 'mldata/model.h5')
+        
+        #model.save(model_path + '/trained_model.h5')
+        # save the model
+        #with open(os.path.join(model_path, 'decision-tree-model.pkl'), 'wb') as out:
+        #    pickle.dump(clf, out)
+        
+        print('Training complete.')
+    except Exception as e:
+        # Write out an error file. This will be returned as the failureReason in the
+        # DescribeTrainingJob result.
+        trc = traceback.format_exc()
+        with open(os.path.join(output_path, 'failure'), 'w') as s:
+            s.write('Exception during training: ' + str(e) + '\n' + trc)
+        # Printing this causes the exception to be in the training job logs, as well.
+        print('Exception during training: ' + str(e) + '\n' + trc, file=sys.stderr)
+        # A non-zero exit code causes the training job to be marked as Failed.
+        sys.exit(255)
+
+if __name__ == '__main__':
+    train()
+
+    # A zero exit code causes the job to be marked a Succeeded.
+    sys.exit(0)
