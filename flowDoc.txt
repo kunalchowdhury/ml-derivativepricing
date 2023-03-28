@@ -1,0 +1,28 @@
+Step 1 is using below files
+generate_baskests.py ( and simple_basket.py)
+1.1)	From a list of 15 securities we take combination and 6 at a time to build baskest.
+1.2) We have 252 day historic data for above 15 stocks ( prices and volatility), whihc is used to generate correlations.
+1.3) We randomly select expiry( 3.6.9.12) and option type and execution style for each bucket and a given strike price, we calculate average NPV use black scholes and Merton method ( MonteCarlo american/european basked engine) and write data in real_basket_options.csv
+
+step 2 is using below files 
+hist_training_data_creator.py
+
+below is the header for real_basket_options.csv
+instrument_id,symbol,strike,
+(underlying_symbol_1,underlying_symbol_2,underlying_symbol_3,underlying_symbol_4,underlying_symbol_5,underlying_symbol_6,
+expiry,execution_style,option_type,
+underlying_spot_1,underlying_spot_2,underlying_spot_3,underlying_spot_4,underlying_spot_5,underlying_spot_6,
+underlying_vol_1,underlying_vol_2,underlying_vol_3,underlying_vol_4,underlying_vol_5,underlying_vol_6,
+corr_11,corr_12,corr_13,corr_14,corr_15,corr_16,corr_21,corr_22,corr_23,corr_24,corr_25,corr_26,corr_31,corr_32,corr_33,corr_34,corr_35,corr_36,corr_41,corr_42,corr_43,corr_44,corr_45,corr_46,corr_51,corr_52,corr_53,corr_54,corr_55,corr_56,corr_61,corr_62,corr_63,corr_64,corr_65,corr_66,
+earliest_date,latest_date,payoff_at_expiry,npv)
+
+2.1) We now create a normal distribution curve ( fit using data we have) for each underlying spot :- Ex take all underlying spot prices for underlying_spot1 and fit a curve. and then create forward prices using that distribution ( mu * np.random.lognormal(0, 1, size) ) Note that the mean and standard deviation are not the values for the distribution itself, but of the underlying normal distribution it is derived from. 
+
+
+2.2) we take volatilities and use the range to generate vols randomlybetween low and high ( Samples are uniformly distributed over the half-open interval [low, high) (includes low, but excludes high). In other words, any value within the given interval is equally likely to be drawn by uniform.
+
+2.3) we find no of correlations ( 15) , for each we fit to beta and draw radom samples fron it for correlations ( why ?)
+2.4) fit expiry in normal distribution and generate and append 
+2.5) append NPV ( why is this added ? what does htis do ? ->d.append(df['npv'].to_numpy())) , why are we taking this from distribution instead of calculation with quant lib ?
+
+
